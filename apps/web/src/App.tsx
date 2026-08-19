@@ -371,8 +371,6 @@ export default function App() {
           onCellClick={mode === 'online' ? handleOnlineCellClick : handleLocalCellClick}
           onRestart={handleRestart}
           onHome={handleHome}
-          musicOn={musicOn}
-          onToggleMusic={toggleMusic}
         />
       )}
 

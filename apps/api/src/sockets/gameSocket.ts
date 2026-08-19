@@ -7,6 +7,11 @@ import { recordGameResult } from '../config/supabase.js';
 const rooms = new Map<string, Room>();
 const waitingQueue: { socketId: string; deviceId: string; displayName: string }[] = [];
 
+function normalizeDisplayName(displayName: string): string {
+  const normalized = displayName.trim().replace(/\s+/g, ' ');
+  return normalized.slice(0, 20) || 'Player';
+}
+
 function otherMark(mark: Mark): Mark {
   return mark === 'X' ? 'O' : 'X';
 }
@@ -27,11 +32,14 @@ export function registerGameSocket(io: Server, socket: Socket) {
     // Prevent duplicate queue entries on reconnect/re-emit
     const alreadyQueued = waitingQueue.find((w) => w.socketId === socket.id);
     if (alreadyQueued) return;
+    if ([...rooms.values()].some((room) => room.players.some((p) => p.socketId === socket.id))) return;
+
+    const safeDisplayName = normalizeDisplayName(displayName || '');
 
     const opponent = waitingQueue.shift();
 
     if (!opponent) {
-      waitingQueue.push({ socketId: socket.id, deviceId, displayName: displayName || 'Player' });
+      waitingQueue.push({ socketId: socket.id, deviceId, displayName: safeDisplayName });
       socket.emit('online:waiting');
       return;
     }
@@ -40,7 +48,7 @@ export function registerGameSocket(io: Server, socket: Socket) {
     const roomId = nanoid(8);
     const players: Player[] = [
       { socketId: opponent.socketId, deviceId: opponent.deviceId, displayName: opponent.displayName, mark: 'X' },
-      { socketId: socket.id, deviceId, displayName: displayName || 'Player', mark: 'O' },
+      { socketId: socket.id, deviceId, displayName: safeDisplayName, mark: 'O' },
     ];
 
     const room: Room = {
@@ -69,6 +77,7 @@ export function registerGameSocket(io: Server, socket: Socket) {
   socket.on('online:move', ({ roomId, index }: { roomId: string; index: number }) => {
     const room = rooms.get(roomId);
     if (!room || !room.active) return;
+    if (!Number.isInteger(index) || index < 0 || index >= room.board.length) return;
 
     const player = room.players.find((p) => p.socketId === socket.id);
     if (!player) return;
@@ -105,7 +114,7 @@ export function registerGameSocket(io: Server, socket: Socket) {
 
   socket.on('online:rematch', ({ roomId }: { roomId: string }) => {
     const room = rooms.get(roomId);
-    if (!room) return;
+    if (!room || room.active || !room.players.some((p) => p.socketId === socket.id)) return;
 
     room.rematchVotes.add(socket.id);
 
@@ -145,6 +154,7 @@ export function registerGameSocket(io: Server, socket: Socket) {
 function leaveRoom(io: Server, socket: Socket, roomId: string) {
   const room = rooms.get(roomId);
   if (!room) return;
+  if (!room.players.some((p) => p.socketId === socket.id)) return;
 
   socket.to(roomId).emit('online:opponentLeft');
   rooms.delete(roomId);

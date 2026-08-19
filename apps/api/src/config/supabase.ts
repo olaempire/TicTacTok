@@ -15,7 +15,8 @@ export const supabase = createClient(
   supabaseServiceKey ?? '',
   {
     realtime: {
-      transport: ws,
+      // Node 20 has no native WebSocket implementation.
+      transport: ws as unknown as typeof WebSocket,
     },
   },
 );
