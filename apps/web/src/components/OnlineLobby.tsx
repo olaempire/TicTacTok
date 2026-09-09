@@ -29,7 +29,7 @@ export default function OnlineLobby({ waiting, onFindMatch, onCancel }: Props) {
           </>
         ) : (
           <>
-            <p>Looking for an opponent...</p>
+            <p>Looking for an opponent to play...</p>
             <button className="modal-btn blue" type="button" onClick={onCancel}>
               Cancel
             </button>

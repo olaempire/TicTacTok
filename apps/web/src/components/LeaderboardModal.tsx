@@ -23,7 +23,7 @@ export default function LeaderboardModal({ onClose }: Props) {
       <div className="modal-content leaderboard-content">
         <h2>Leaderboards</h2>
         {loading && <p>Loading...</p>}
-        {error && <p>Couldn't load leaderboard — is the API running?</p>}
+        {error && <p>Unable to load leaderboard — is the API running?</p>}
         {!loading && !error && (
           <div className="leaderboard-list">
             {entries.length === 0 && <p>No games played yet. Be the first!</p>}
